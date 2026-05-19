@@ -1,11 +1,30 @@
 
-
 def buscar(cur, id_leilao):
   cur.execute("""
     SELECT id, descricao, criador, data, diferenca_minima
     FROM leiloes
     WHERE id = %s
   """, (id_leilao, ))
+  return cur.fetchone()
+
+
+def buscar_todos(cur):
+  cur.execute("""
+    SELECT id, descricao, criador, data, diferenca_minima
+    FROM leiloes
+    ORDER BY data
+  """)
+  return cur.fetchall()
+
+
+def buscar_proximo(cur):
+  cur.execute("""
+    SELECT id, descricao, criador, data, diferenca_minima
+    FROM leiloes
+    WHERE data >= now()
+    ORDER BY data ASC
+    LIMIT 1
+  """)
   return cur.fetchone()
 
 
@@ -40,8 +59,9 @@ def buscar_diferenca_minima(cur, id_leilao):
     WHERE id = %s
   """, (id_leilao, ))
   leilao = cur.fetchone()
-  diferenca_minima = leilao[0]
-  return diferenca_minima
+  if leilao is None:
+    return None
+  return leilao[0]
 
 
 def inserir_lance(cur, id_leilao, valor, id_usuario):

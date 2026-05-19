@@ -1,159 +1,144 @@
-# Workshop sobre refatoração
+# Workshop sobre refatoração de API de leilões
 
-Toda pessoa que trabalha com software já passou, ou vai passar, pela experiência de adicionar/alterar funcionalidades de um sistema que está no ar. Com isso ela se vê em contato com uma base de código existente, produzida por uma outra equipe.
+Este projeto simula um serviço de leilão que já passou por refatoração e hoje deve ser mantido com boas práticas. O objetivo é deixar o código mais seguro, previsível e fácil de evoluir como um projeto pessoal, sem criar uma estrutura exagerada.
 
-Qual a postura esperada desse profissional? Até onde é correto “colocar a culpa” na equipe de desenvolvimento anterior? Até onde é válido barrar demandas devido a limitações da arquitetura atual do sistema? Nesse workshop você será guiado por um processo simulado dessa situação, tendo a oportunidade de praticar desde a parte técnica (refatoração segura) quanto a parte ética e profissional dessa tarefa que normalmente negligenciamos durante nossa capacitação profissional.
+## O que foi melhorado
 
-## Como usar este repositório?
+- API mais estável e com validações claras: cabeçalho obrigatório `X-Id-Usuario` e valor do lance validado como inteiro positivo.
+- Tratamento de erros com respostas JSON consistentes para clientes HTTP.
+- Endpoints expandidos:
+  - `GET /leiloes` para listar todos os leilões.
+  - `GET /leiloes/proximo` para acessar o próximo leilão agendado.
+  - `GET /leiloes/<id>` para ver detalhes e lances de um leilão.
+- Repositório separado: a camada de acesso a dados agora inclui busca de todos os leilões e próximo leilão.
+- Projeto preparado para ambiente local com `.venv`, `requirements-dev.txt` e `.gitignore`.
+- Dados iniciais passíveis de recriação via `schema.sql` e `seed.sql`.
 
-Aqui você vai encontrar uma simulação de trabalho em um código *legado*, até transformá-lo em algo mais fácil de se manter. A melhor maneira de acompanhar a evolução do código é analisar o histórico de commits. Cada item é autocontido e termina em um estado onde a aplicação continua funcionando. Resumo do que vai sendo feito conforme os commits vão acontecendo:
+## Estrutura de arquivos
 
-- Adição de infraestrutura de testes automatizados;
-- Correção de defeito: diferença mínima no lance não é respeitada;
-- Alteração de funcionalidade: aplicação mostra todos os lances ao invés do último apenas;
-- Remoção de funcionalidade: detalhes do próximo leilão;
-- Adição de funcionalidade: criador do lance não deve mais ser capaz de dar lance.
-
-Todas as intervenções no código seguem algumas regras de ouro:
-
-- Nunca quebre a interface com usuários (no caso de uma API os usuários são os frontend/serviços clientes dela) existentes;
-- Acabe com código morto (não utilizado);
-- Cubra completamente com testes a funcionalidade antes de alterá-la;
-- Aplique refatorações conforme a cobertura de testes for aumentando e elas se mostrarem possíveis/viáveis.
+- `app.py` - API Flask.
+- `db.py` - conexão com PostgreSQL e gerenciamento de contexto Flask.
+- `modelo/leilao.py` - regras de negócio do leilão.
+- `repositorio/leilao.py` - consultas SQL.
+- `test/` - suíte de testes com cobertura de regras de lance e rotas.
+- `schema.sql` - script de criação de tabelas.
+- `seed.sql` - script de dados iniciais.
+- `.gitignore` - evita enviar ambiente local e arquivos temporários ao Git.
 
 ## Pré-requisitos
 
-Para seguir este workshop você precisa ter instalado na sua máquina:
+- Python 3.12+
+- Docker (recomendado para PostgreSQL local)
 
-- Python 3
-- PostgreSQL
+## Configuração local
 
-## Ambiente virtual Python
-
-Recomenda-se o uso de um ambiente virtual Python, por exemplo com o comando:
+1. Ative o ambiente virtual:
 
 ```sh
-python -m venv ~/.pyenvs/refatoracao
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-Sempre que quiser iniciar este ambiente em um terminal, execute:
-
-```sh
-source ~/.pyenvs/refatoracao/bin/activate
-```
-
-## Banco de dados
-
-Execute os seguintes scripts para criar as tabelas iniciais:
-
-```sql
-create table leiloes (
-  id serial primary key,
-  descricao text not null,
-  criador uuid not null,
-  data timestamp with time zone not null,
-  diferenca_minima smallint not null
-);
-insert into leiloes (descricao, criador, data, diferenca_minima)
-values ('Caneca', 'efd28c1e-2538-4842-a97a-92759903c2fa', now(), 500);
-insert into leiloes (descricao, criador, data, diferenca_minima)
-values ('Cadeira', 'efd28c1e-2538-4842-a97a-92759903c2fa', now(), 1);
-
-create table lances (
-  id serial primary key,
-  valor smallint not null,
-  comprador uuid not null,
-  data timestamp with time zone not null,
-  id_leilao int not null,
-
-  constraint fk_lances_leilao foreign key (id_leilao) references leiloes (id)
-);
-insert into lances (valor, comprador, data, id_leilao)
-values (501, '1027c0fc-77c8-44d0-8b0b-4fdf9634bcd8', now(), 1);
-insert into lances (valor, comprador, data, id_leilao)
-values (1001, '05feb8af-89a1-4320-bf0f-29dc1b8754c5', now(), 1);
-```
-
-## Executando
-
-Primeiro instale as dependências:
+2. Instale dependências de runtime:
 
 ```sh
 pip install -r requirements.txt
 ```
 
-Depois execute a aplicação:
+3. Instale dependências de desenvolvimento (teste):
+
+```sh
+pip install -r requirements-dev.txt
+```
+
+## Banco de dados com Docker
+
+Suba o PostgreSQL local:
+
+```sh
+docker run --name workshop-postgres \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=banco1 \
+  -p 5432:5432 \
+  -d postgres:15
+```
+
+Crie o schema e os registros de exemplo:
+
+```sh
+docker exec -i workshop-postgres psql -U postgres -d banco1 < schema.sql
+cat seed.sql | docker exec -i workshop-postgres psql -U postgres -d banco1
+```
+
+> Se você preferir, use `docker exec -i workshop-postgres psql -U postgres -d banco1` e cole o conteúdo de `schema.sql` e `seed.sql`.
+
+## Executando a aplicação
+
+No terminal com `.venv` ativado:
 
 ```sh
 export DB_CONN_STRING="dbname=banco1 user=postgres password=postgres host=localhost"
-FLASK_APP=api.py flask run
+export FLASK_APP=app.py
+python -m flask run
 ```
 
-Utilize `cUrl` ou outro cliente HTTP para fazer as chamadas.
+## Testes
 
-## Exemplos de chamada cUrl
-
-Nota: os exemplos abaixo usam `jq` para formatar respostas JSON. Caso não tenha esse utilitário na máquina, basta retirá-lo da chamada. Exemplo de alternativas:
+Execute a suíte com:
 
 ```sh
-$ curl -s http://localhost:5000/leiloes/1 | jq
-$ curl -s http://localhost:5000/leiloes/1 | json_pp
-$ curl http://localhost:5000/leiloes/1
+pytest test/ -v
 ```
 
-Detalhes do leilão:
+Para gerar relatório de cobertura:
 
 ```sh
-$ curl -s http://localhost:5000/leiloes/2 | jq
-{
-  "criador": "efd28c1e-2538-4842-a97a-92759903c2fa",
-  "data": "2020-04-21T22:45:24.179684+00:00",
-  "descricao": "Cadeira",
-  "diferenca_minima": 1,
-  "id": 2,
-  "ultimo_lance": null
-}
+pytest --cov=app --cov=modelo --cov=repositorio --cov-report=term
 ```
 
-Submissão de lance:
+## Uso básico da API
+
+Listar leilões:
 
 ```sh
-$ curl -i -X POST -s http://localhost:5000/leiloes/1/lances \
+curl -s http://localhost:5000/leiloes
+```
+
+Ver detalhes de um leilão:
+
+```sh
+curl -s http://localhost:5000/leiloes/1
+```
+
+Ver o próximo leilão:
+
+```sh
+curl -s http://localhost:5000/leiloes/proximo
+```
+
+Registrar lance:
+
+```sh
+curl -i -X POST http://localhost:5000/leiloes/1/lances \
   -H "Content-Type: application/json" \
-  -H "X-Id-Usuario: 43a72ab6-8abf-44c2-b6c2-da54f62f79cc" \
-  -d "{ \"valor\": 200 }"
-HTTP/1.0 204 NO CONTENT
-Content-Type: text/html; charset=utf-8
-Server: Werkzeug/1.0.1 Python/3.8.2
-Date: Tue, 21 Apr 2020 00:37:41 GMT
+  -H "X-Id-Usuario: 43a72ab6-8abf-44c2-bf0b-4fdf9634bcd8" \
+  -d '{"valor": 200}'
 ```
 
-Submissão de lance mínimo:
+Lance mínimo:
 
 ```sh
-$ curl -i -X POST -s http://localhost:5000/leiloes/1/lances/minimo \
-  -H "X-Id-Usuario: 43a72ab6-8abf-44c2-b6c2-da54f62f79cc"
-HTTP/1.0 204 NO CONTENT
-Content-Type: text/html; charset=utf-8
-Server: Werkzeug/1.0.1 Python/3.8.2
-Date: Tue, 21 Apr 2020 00:38:19 GMT
+curl -i -X POST http://localhost:5000/leiloes/1/lances/minimo \
+  -H "X-Id-Usuario: 43a72ab6-8abf-44c2-bf0b-4fdf9634bcd8"
 ```
 
-Detalhes do próximo leilão:
+## Observações do refactor
 
-```sh
-$ curl -s http://localhost:5000/leiloes/proximo | jq
-{
-  "criador": "efd28c1e-2538-4842-a97a-92759903c2fa",
-  "data": "2020-04-21T22:45:23.933300+00:00",
-  "descricao": "Caneca",
-  "diferenca_minima": 500,
-  "id": 1,
-  "ultimo_lance": {
-    "comprador": "43a72ab6-8abf-44c2-b6c2-da54f62f79cc",
-    "data": "2020-04-21T23:11:24.205915+00:00",
-    "id": 10,
-    "valor": 207
-  }
-}
-```
+A ideia foi manter este sistema como um projeto pessoal, simples e prático:
+- arquitetura leve, com separação clara entre API, modelo e repositório;
+- documentação do setup local, sem dependência de ferramentas complexas;
+- testes automatizados que comprovam as regras de negócio importantes;
+- `.gitignore` preparado para não versionar ambientes e arquivos temporários.
+
+Você pode evoluir o projeto para incluir autenticação real, paginação de listagem e métricas DevOps mais tarde, mas a base agora está mais organizada para isso.

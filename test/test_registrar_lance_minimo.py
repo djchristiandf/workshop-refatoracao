@@ -7,7 +7,7 @@ def test_com_lance_anterior(con, client):
     fabricar_lance(cur, id_=-1, id_leilao=-1, valor=50)
   resp = client.post(
     '/leiloes/-1/lances/minimo',
-    headers={ 'x_id_usuario': '5bfd3460-468e-4b30-bf1e-6917869b258c' }
+    headers={ 'X-Id-Usuario': '5bfd3460-468e-4b30-bf1e-6917869b258c' }
   )
   assert resp.status_code == 204
   with con.cursor() as cur:
@@ -25,7 +25,7 @@ def test_sem_lance_anterior(con, client):
     fabricar_leilao(cur, id_=-1, diferenca_minima=2)
   resp = client.post(
     '/leiloes/-1/lances/minimo',
-    headers={ 'x_id_usuario': '5bfd3460-468e-4b30-bf1e-6917869b258c' }
+    headers={ 'X-Id-Usuario': '5bfd3460-468e-4b30-bf1e-6917869b258c' }
   )
   assert resp.status_code == 204
   with con.cursor() as cur:
@@ -43,6 +43,6 @@ def test_lance_do_criador(con, client):
     fabricar_leilao(cur, id_=-1, criador='5bfd3460-468e-4b30-bf1e-6917869b258c')
   resp = client.post(
     '/leiloes/-1/lances/minimo',
-    headers={ 'x_id_usuario': '5bfd3460-468e-4b30-bf1e-6917869b258c' }
+    headers={ 'X-Id-Usuario': '5bfd3460-468e-4b30-bf1e-6917869b258c' }
   )
   assert resp.status_code == 400
