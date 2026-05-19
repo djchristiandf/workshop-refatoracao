@@ -141,4 +141,4 @@ A ideia foi manter este sistema como um projeto pessoal, simples e prático:
 - testes automatizados que comprovam as regras de negócio importantes;
 - `.gitignore` preparado para não versionar ambientes e arquivos temporários.
 
-Você pode evoluir o projeto para incluir autenticação real, paginação de listagem e métricas DevOps mais tarde, mas a base agora está mais organizada para isso.
+Poderá o projeto evoluir para incluir autenticação real, paginação de listagem e métricas DevOps mais tarde, mas a base agora está mais organizada para isso.
